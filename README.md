@@ -8,9 +8,8 @@
         -   [Packages](#installfirebaselibray)
         -   [Config Auth](#configauth)
             -   [Environment Variables](#environment)
-        -   [Sign Up User](#signup)
-
-[Go Back to Summary](#summary)
+        -   [Sign Up Route](#signup)
+        -   [Login Route](#login)
 
 <h1 id='firebase'>Firebase</h1>
 
@@ -288,15 +287,20 @@
       const serviceAccount = require('./serviceAccountKey.json');
       const firebase = require('firebase');
 
+      let env = require('./env.json');
+      if (Object.keys(functions.config()).length) {
+          env = functions.config();
+      }
+
       const config = {
-          apiKey: 'AIzaSyBayN3wy36U3KAUOA4799xasdfd_asadf',
-          authDomain: 'socialape-4ee16.firebaseapp.com',
-          databaseURL: 'https://socialape-4ee16.firebaseio.com',
-          projectId: 'socialape-4ee16',
-          storageBucket: 'socialape-4ee16.appspot.com',
-          messagingSenderId: '480549260719',
-          appId: '1:480549260719:web:67741adf6c1cebba57333a',
-          measurementId: 'G-29NCSR5B6R',
+          apiKey: env.config.api_key,
+          authDomain: env.config.auth_domain,
+          databaseURL: env.config.database_url,
+          projectId: env.config.project_id,
+          storageBucket: env.config.storage_bucket,
+          messagingSenderId: env.config.messaging_sender_id,
+          appId: env.config.app_id,
+          measurementId: env.config.measurement_id,
       };
 
       let env = require(./env.json);
@@ -322,7 +326,7 @@
       exports.api = functions.https.onRequest(app);
     ```
 
-<h3 id='signup'>Sign Up User</h3>
+<h3 id='signup'>Sign Up Route</h3>
 
 [Go Back to Summary](#summary)
 
@@ -379,3 +383,42 @@
               });
       });
     ```
+
+<h3 id='login'>Login Route</h3>
+
+[Go Back to Summary](#summary)
+
+```JavaScript
+  app.post('/login', (req, res) => {
+      const user = {
+          email: req.body.email,
+          password: req.body.password,
+      };
+
+      const errors = {};
+
+      if (isEmpty(user.email)) errors.email = 'Must not be empty';
+      if (isEmpty(user.password)) errors.password = 'Must not be empty';
+
+      if (Object.keys(errors).length > 0) return res.status(400).json(errors);
+
+      firebase
+          .auth()
+          .signInWithEmailAndPassword(user.email, user.password)
+          .then((data) => {
+              return data.user.getIdToken();
+          })
+          .then((token) => {
+              return res.json({ token });
+          })
+          .catch((error) => {
+              console.error(error);
+
+              if (error.code === 'auth/wrong-password') {
+                  return res.status(403).json({ general: 'Wrong credentials, please try again' });
+              }
+
+              return res.status(500).json({ error: error.code });
+          });
+  });
+```
