@@ -39,6 +39,34 @@ const isEmail = (email) => {
     if (email.match(emailRegEx)) return true;
     return false;
 };
+
+const firebaseAuth = (req, res, next) => {
+    let token;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split('Bearer ')[1];
+    } else {
+        console.error('Not token found');
+        return res.status(403).json({ error: 'Unauthorized!' });
+    }
+
+    admin
+        .auth()
+        .verifyIdToken(token)
+        .then((decodedToken) => {
+            req.user = decodedToken;
+            return db.collection('users').where('userId', '==', req.user.uid).limit(1).get();
+        })
+        .then((data) => {
+            req.user.handle = data.docs[0].data().handle;
+            return next();
+        })
+        .catch((error) => {
+            console.error('Error while verifying token', error);
+            return res.status(403).json(error);
+        });
+};
+
 app.get('/screams', (req, res) => {
     db.collection('screams')
         .orderBy('createdAt', 'desc')
@@ -60,10 +88,10 @@ app.get('/screams', (req, res) => {
         });
 });
 
-app.post('/scream', (req, res) => {
+app.post('/scream', firebaseAuth, (req, res) => {
     const newScream = {
         body: req.body.body,
-        userHandle: req.body.userHandle,
+        userHandle: req.user.handle,
         createdAt: new Date().toISOString(),
     };
 
