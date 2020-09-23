@@ -1,20 +1,20 @@
 <h1 id='summary'>Summary</h1>
 
--   [Firebase](#firebase)
-    -   [Create New Project](#createnewproject)
-    -   [Initialize Project - Without Express](#firebaseinit)
-    -   [Using Express With Firebase](#firebaseexpress)
-        -   [User Authentication](#userauthentication)
-        -   [Packages](#installfirebaselibray)
-        -   [Config Auth](#configauth)
-            -   [Environment Variables](#environment)
-        -   [Sign Up Route](#signup)
-        -   [Login Route](#login)
-        -   [Middleware - Auth](#middleware)
+- [Firebase](#firebase)
+  - [Create New Project](#create-new-project)
+  - [Initialize Project - Without Express](#initialize-project---without-express)
+  - [Using Express With Firebase](#using-express-with-firebase)
+    - [User Authentication](#user-authentication)
+    - [Packages](#packages)
+    - [Config Auth](#config-auth)
+      - [Environment Variables](#environment-variables)
+    - [Sign Up Route](#sign-up-route)
+    - [Login Route](#login-route)
+    - [Middleware - Auth](#middleware---auth)
 
-<h1 id='firebase'>Firebase</h1>
+# Firebase
 
-<h2 id='createnewproject'>Create New Project</h2>
+## Create New Project
 
 [Go Back to Summary](#summary)
 
@@ -22,86 +22,86 @@
 
     ```Bash
       firebase init
-        Functions: configure and deploy Cloud functions
-        Use and existing project
-          Select from the options
-        ESLint -> No
-        install all packages -> Yes
-
-      Change dir to **functions** folder
+          Functions: configure and deploy Cloud functions
+          Use and existing project
+              Select from the options
+          ESLint -> No
+          install all packages -> Yes
     ```
 
-<h2 id='firebaseinit'>Initialize Project - Without Express</h2>
+-   Change dir to **functions** folder
+
+## Initialize Project - Without Express
 
 [Go Back to Summary](#summary)
 
 -   in `functions/index.js`
+-   Require **functions** from `firebase-functions`
+-   Require **admin** from `firebase-admin`
 
-        -   Require **functions** from `firebase-functions`
-        -   Require **admin** from `firebase-admin`
-            -   We use the **admin sdk** to access our database
-            -   Initialize our app with `admin.initializeApp()`
-                -   Usually we pass our project to `initializeApp()` but since we already have an `.firebaserc` file with:
-                    ```JavaScript
-                      {
-                        "projects": {
-                          "default": "socialape-4ee16"
-                        }
-                      }
-                    ```
-                    -   We don't need to pass it anything
-            -   Then we can create our first endpoint (`.getScreams`)
-            -   and our second endpoint to `.createScream`
-
+    -   We use the **admin sdk** to access our database
+    -   Initialize our app with `admin.initializeApp()`
+        -   Usually we pass our project to `initializeApp()` but since we already have an `.firebaserc` file with:
         ```JavaScript
-          const functions = require('firebase-functions');
-          const admin = require('firebase-admin');
-
-          admin.initializeApp();
-
-          exports.getScreams = functions.https.onRequest((req, res) => {
-              admin
-                  .firestore()
-                  .collection('screams')
-                  .get()
-                  .then((data) => {
-                      let screams = [];
-                      data.docs.forEach((doc) => {
-                          screams.push(doc.data());
-                      });
-                      return res.json(screams);
-                  })
-                  .catch((error) => {
-                      console.error(error);
-                  });
-          });
-
-          exports.createScream = functions.https.onRequest((req, res) => {
-              if (req.method !== 'POST') {
-                  res.status(400).json({ error: 'Method not allowed' });
-              }
-
-              const newScream = {
-                  body: req.body.body,
-                  userHandle: req.body.userHandle,
-                  createdAt: admin.firestore.Timestamp.fromDate(new Date()),
-              };
-
-              admin
-                  .firestore()
-                  .collection('screams')
-                  .add(newScream)
-                  .then((doc) => {
-                      res.json({ message: `document ${doc.id} created successfully` });
-                  })
-                  .catch((error) => {
-                      console.error(error);
-                      res.status(500).json({ error: 'Something went wrong' });
-                  });
-          });
+          {
+            "projects": {
+              "default": "socialape-4ee16"
+            }
+          }
         ```
+        -   We don't need to pass it anything
+    -   Then we can create our first endpoint (`.getScreams`)
+    -   and our second endpoint to `.createScream`
 
-<h2 id='firebaseexpress'>Using Express With Firebase</h2>
+    ```JavaScript
+      const functions = require('firebase-functions');
+      const admin = require('firebase-admin');
+
+      admin.initializeApp();
+
+      exports.getScreams = functions.https.onRequest((req, res) => {
+          admin
+              .firestore()
+              .collection('screams')
+              .get()
+              .then((data) => {
+                  let screams = [];
+                  data.docs.forEach((doc) => {
+                      screams.push(doc.data());
+                  });
+                  return res.json(screams);
+              })
+              .catch((error) => {
+                  console.error(error);
+              });
+      });
+
+      exports.createScream = functions.https.onRequest((req, res) => {
+          if (req.method !== 'POST') {
+              res.status(400).json({ error: 'Method not allowed' });
+          }
+
+          const newScream = {
+              body: req.body.body,
+              userHandle: req.body.userHandle,
+              createdAt: admin.firestore.Timestamp.fromDate(new Date()),
+          };
+
+          admin
+              .firestore()
+              .collection('screams')
+              .add(newScream)
+              .then((doc) => {
+                  res.json({ message: `document ${doc.id} created successfully` });
+              })
+              .catch((error) => {
+                  console.error(error);
+                  res.status(500).json({ error: 'Something went wrong' });
+              });
+      });
+    ```
+
+## Using Express With Firebase
 
 [Go Back to Summary](#summary)
 
@@ -121,65 +121,65 @@
 
         -   This will automatically crete multiple endpoints
 
-        ```JavaScript
-          const functions = require('firebase-functions');
-          const admin = require('firebase-admin');
-          const express = require('express');
-          let serviceAccount = require('./serviceAccountKey.json');
+    ```JavaScript
+      const functions = require('firebase-functions');
+      const admin = require('firebase-admin');
+      const express = require('express');
+      let serviceAccount = require('./serviceAccountKey.json');
 
-          admin.initializeApp({
-              credential: admin.credential.cert(serviceAccount),
-              databaseURL: 'https://socialape-4ee16.firebaseio.com',
-          });
-          const app = express();
+      admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          databaseURL: 'https://socialape-4ee16.firebaseio.com',
+      });
+      const app = express();
 
-          app.get('/screams', (req, res) => {
-              admin
-                  .firestore()
-                  .collection('screams')
-                  .orderBy('createdAt', 'desc')
-                  .get()
-                  .then((data) => {
-                      let screams = [];
-                      data.docs.forEach((doc) => {
-                          screams.push({
-                              screamId: doc.id,
-                              body: doc.data().body,
-                              userHandle: doc.data().userHandle,
-                              createdAt: doc.data().createdAt,
-                          });
+      app.get('/screams', (req, res) => {
+          admin
+              .firestore()
+              .collection('screams')
+              .orderBy('createdAt', 'desc')
+              .get()
+              .then((data) => {
+                  let screams = [];
+                  data.docs.forEach((doc) => {
+                      screams.push({
+                          screamId: doc.id,
+                          body: doc.data().body,
+                          userHandle: doc.data().userHandle,
+                          createdAt: doc.data().createdAt,
                       });
-                      return res.json(screams);
-                  })
-                  .catch((error) => {
-                      console.error(error);
                   });
-          });
+                  return res.json(screams);
+              })
+              .catch((error) => {
+                  console.error(error);
+              });
+      });
 
-          app.post('/scream', (req, res) => {
-              const newScream = {
-                  body: req.body.body,
-                  userHandle: req.body.userHandle,
-                  createdAt: new Date().toISOString(),
-              };
+      app.post('/scream', (req, res) => {
+          const newScream = {
+              body: req.body.body,
+              userHandle: req.body.userHandle,
+              createdAt: new Date().toISOString(),
+          };
 
-              admin
-                  .firestore()
-                  .collection('screams')
-                  .add(newScream)
-                  .then((doc) => {
-                      res.json({ message: `document ${doc.id} created successfully` });
-                  })
-                  .catch((error) => {
-                      console.error(error);
-                      res.status(500).json({ error: 'Something went wrong' });
-                  });
-          });
+          admin
+              .firestore()
+              .collection('screams')
+              .add(newScream)
+              .then((doc) => {
+                  res.json({ message: `document ${doc.id} created successfully` });
+              })
+              .catch((error) => {
+                  console.error(error);
+                  res.status(500).json({ error: 'Something went wrong' });
+              });
+      });
 
-          exports.api = functions.https.onRequest(app);
-        ```
+      exports.api = functions.https.onRequest(app);
+    ```
 
-<h3 id='userauthentication'>User Authentication</h3>
+### User Authentication
 
 [Go Back to Summary](#summary)
 
@@ -194,20 +194,20 @@
         -   On **General** tab, click on **Add Firebase to your web app**
         -   Copy the `config` object
 
-        ```JavaScript
-            var config = {
-                apiKey: 'AIzaSyBayN3wy36U3KAahishfaahi_yfnoE',
-                authDomain: 'socialape-4ee16.firebaseapp.com',
-                databaseURL: 'https://socialape-4ee16.firebaseio.com',
-                projectId: 'socialape-4ee16',
-                storageBucket: 'socialape-4ee16.appspot.com',
-                messagingSenderId: '4805afasd19',
-                appId: '1:4805afasd19:web:67741adf6c1cfasd1237335a',
-                measurementId: 'G-2F1231SFB6R',
-            };
-        ```
+    ```JavaScript
+        var config = {
+            apiKey: 'AIzaSyBayN3wy36U3KAahishfaahi_yfnoE',
+            authDomain: 'socialape-4ee16.firebaseapp.com',
+            databaseURL: 'https://socialape-4ee16.firebaseio.com',
+            projectId: 'socialape-4ee16',
+            storageBucket: 'socialape-4ee16.appspot.com',
+            messagingSenderId: '4805afasd19',
+            appId: '1:4805afasd19:web:67741adf6c1cfasd1237335a',
+            measurementId: 'G-2F1231SFB6R',
+        };
+    ```
 
-<h3 id='installfirebaselibray'>Packages</h3>
+### Packages
 
 [Go Back to Summary](#summary)
 
@@ -219,11 +219,11 @@
       npm i firebase
     ```
 
-<h3 id='configauth'>Config Auth</h3>
+### Config Auth
+
+#### Environment Variables
 
 [Go Back to Summary](#summary)
-
-<h4 id='environment'>Environment Variables</h4>
 
 -   to set environment variables firebase gives us a couple of commands do to so
 
@@ -327,7 +327,7 @@
       exports.api = functions.https.onRequest(app);
     ```
 
-<h3 id='signup'>Sign Up Route</h3>
+### Sign Up Route
 
 [Go Back to Summary](#summary)
 
@@ -385,7 +385,7 @@
       });
     ```
 
-<h3 id='login'>Login Route</h3>
+### Login Route
 
 [Go Back to Summary](#summary)
 
@@ -424,7 +424,7 @@
   });
 ```
 
-<h3 id='middleware'>Middleware - Auth</h3>
+### Middleware - Auth
 
 [Go Back to Summary](#summary)
 
